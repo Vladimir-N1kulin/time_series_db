@@ -1,71 +1,116 @@
 class Node(object):
-    """Base node object.
-
-    Each node stores keys and values. Keys are not unique to each value, and as such values are
-    stored as a list under each key.
-
+    """Base node object. It should be an index node.
+    Each node stores keys and children.
     Attributes:
-        order (int): The maximum number of keys each node can hold.
+        parent
     """
-    def __init__(self, order):
-        """Child nodes can be converted into parent nodes by setting self.leaf = False. Parent nodes
-        simply act as a medium to traverse the tree."""
-        self.order = order
-        self.keys = []
-        self.values = []
-        self.leaf = True
 
-    def insert_key_value(self, key, value):
-        """Inserts a key-value pair into the node."""
-        # If the node is empty, simply insert the key-value pair.
-        if not self.keys:
-            self.keys.append(key)
-            self.values.append([value])
-            return None
+    def __init__(self, parent=None):
+        """Child nodes are stored in values. Parent nodes simply act as a medium to traverse the tree.
+        :type parent: Node"""
+        self.keys: list = []
+        self.values: list[Node] = []
+        self.parent: Node = parent
+        self.splits = 0
+        self.parent_splits = 0
+        self.fusions = 0
+        self.parent_fusions = 0
 
+    def index(self, key):
+        """Return the index where the key should be.
+        :type key: str
+        """
         for i, item in enumerate(self.keys):
-            # If new key matches an existing key, add to the list of values.
-            if key == item:
-                self.values[i].append(value)
-                break
+            if key < item:
+                return i
 
-            # If new key is smaller than an existing key, insert the new key to the left of it.
-            elif key < item:
-                self.keys = self.keys[:i] + [key] + self.keys[i:]
-                self.values = self.values[:i] + [[value]] + self.values[i:]
-                break
+        return len(self.keys)
 
-            # If new key is larger than all existing keys, insert it at the end.
-            elif i + 1 == len(self.keys):
-                self.keys.append(key)
-                self.values.append([value])
+    def __getitem__(self, item):
+        return self.values[self.index(item)]
 
-    def split_node(self):
-        """Splits the node into two child nodes."""
-        left_child = Node(self.order)
-        right_child = Node(self.order)
-        mid_index = self.order // 2
+    def __setitem__(self, key, value):
+        i = self.index(key)
+        self.keys[i:i] = [key]
+        self.values.pop(i)
+        self.values[i:i] = value
 
-        left_child.keys = self.keys[:mid_index]
-        left_child.values = self.values[:mid_index]
+    def split(self):
+        """Splits the node into two and stores them as child nodes.
+        Extracts a pivot from the child to be inserted into the keys of the parent.
+        @:return key and two children
+        """
+        self.splits += 1
+        self.parent_splits += 1
 
-        right_child.keys = self.keys[mid_index:]
-        right_child.values = self.values[mid_index:]
+        left = Node(self.parent)
 
-        # Set the parent key to the left-most key of the right child node.
-        self.keys = [right_child.keys[0]]
-        self.values = [left_child, right_child]
-        self.leaf = False
+        mid = len(self.keys) // 2
 
-    def is_node_full(self):
-        """Checks if the node has reached its maximum capacity."""
-        return len(self.keys) == self.order
+        left.keys = self.keys[:mid]
+        left.values = self.values[:mid + 1]
 
-    def display_keys(self, depth=0):
-        """Displays the keys in the node at each level."""
-        print(depth, str(self.keys))
 
-        # Recursively display the keys of child nodes (if any exist).
-        if not self.leaf:
+        for child in left.values:
+            if isinstance(child, Node):
+                child.parent = left
+
+        key = self.keys[mid]
+        self.keys = self.keys[mid + 1:]
+        self.values = self.values[mid + 1:]
+
+        return key, [left, self]
+
+    def __delitem__(self, key):
+        i = self.index(key)
+        del self.values[i]
+        if i < len(self.keys):
+            del self.keys[i]
+        else:
+            del self.keys[i - 1]
+
+    def fusion(self):
+        """Merge this node with a sibling node."""
+        self.fusions += 1
+        self.parent_fusions += 1
+
+        index = self.parent.index(self.keys[0])
+        # Merge this node with the next node
+        if index < len(self.parent.keys):
+            next_node: Node = self.parent.values[index + 1]
+            next_node.keys[0:0] = self.keys + [self.parent.keys[index]]
             for child in self.values:
-                child.display_keys(depth + 1)
+                child.parent = next_node
+            next_node.values[0:0] = self.values
+        else:  # If self is the last node, merge with the previous node
+            prev: Node = self.parent.values[-2]
+            prev.keys += [self.parent.keys[-1]] + self.keys
+            for child in self.values:
+                child.parent = prev
+            prev.values += self.values
+
+    def borrow_key(self, minimum: int):
+        """Borrow a key from a sibling node to balance the tree."""
+        index = self.parent.index(self.keys[0])
+        if index < len(self.parent.keys):
+            next_node: Node = self.parent.values[index + 1]
+            if len(next_node.keys) > minimum:
+                self.keys += [self.parent.keys[index]]
+
+                borrow_node = next_node.values.pop(0)
+                borrow_node.parent = self
+                self.values += [borrow_node]
+                self.parent.keys[index] = next_node.keys.pop(0)
+                return True
+        elif index != 0:
+            prev: Node = self.parent.values[index - 1]
+            if len(prev.keys) > minimum:
+                self.keys[0:0] = [self.parent.keys[index - 1]]
+
+                borrow_node = prev.values.pop()
+                borrow_node.parent = self
+                self.values[0:0] = [borrow_node]
+                self.parent.keys[index - 1] = prev.keys.pop()
+                return True
+
+        return False

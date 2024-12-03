@@ -1,98 +1,77 @@
-class BPlusTreeNode:
-    def __init__(self, is_leaf=False):
-        # Initialize a B+ tree node
-        # is_leaf indicates whether the node is a leaf node
-        self.is_leaf = is_leaf
-        self.keys = []  # List of keys in the node
-        self.children = []  # List of child nodes (for internal nodes)
-        self.values = [] if is_leaf else None  # List of values (only for leaf nodes)
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-    def __repr__(self):
-        # String representation of the node for debugging
-        return f"BPlusTreeNode(keys={self.keys}, is_leaf={self.is_leaf})"
+from node import Node
 
-class BPlusTree:
-    def __init__(self, order=4):
-        # Initialize a B+ tree
-        # order is the maximum number of children a node can have
-        self.order = order
-        self.root = BPlusTreeNode(is_leaf=True)  # Start with an empty leaf node as the root
+class BPlusTree(object):
+    """B+ tree object, consisting of nodes.
+    Nodes will automatically be split into two once it is full. When a split occurs, a key will
+    'float' upwards and be inserted into the parent node to act as a pivot.
 
-    def insert(self, key, value):
-        # Insert a key-value pair into the B+ tree
-        root = self.root
-        # If the root is full, split it and create a new root
-        if len(root.keys) == self.order - 1:
-            new_root = BPlusTreeNode()  # Create a new root node
-            new_root.children.append(self.root)  # Add current root as child of new root
-            self._split_child(new_root, 0)  # Split the child
-            self.root = new_root  # Update the root
-        self._insert_non_full(self.root, key, value)  # Insert the key-value pair
+    Attributes:
+        order (int): The maximum number of keys each node can hold.
+    """
+    def __init__(self, order=8):
+        self.root = Node(order)
 
-    def _insert_non_full(self, node, key, value):
-        # Helper function to insert a key-value pair into a non-full node
-        if node.is_leaf:
-            # If the node is a leaf, find the correct position and insert the key and value
-            idx = self._find_index(node.keys, key)
-            node.keys.insert(idx, key)
-            node.values.insert(idx, value)
-        else:
-            # If the node is not a leaf, find the correct child to recurse into
-            idx = self._find_index(node.keys, key)
-            child = node.children[idx]
-            # If the child is full, split it
-            if len(child.keys) == self.order - 1:
-                self._split_child(node, idx)
-                # Determine which of the two children to recurse into
-                if key > node.keys[idx]:
-                    idx += 1
-            self._insert_non_full(node.children[idx], key, value)
+    def _find_position(self, node, key):
+        """Finds the appropriate child node and index for the given key."""
+        for i, item in enumerate(node.keys):
+            if key < item:
+                return node.values[i], i
 
-    def _split_child(self, parent, index):
-        # Helper function to split a child node that is full
-        node_to_split = parent.children[index]
-        new_node = BPlusTreeNode(is_leaf=node_to_split.is_leaf)  # Create a new node
-        mid = len(node_to_split.keys) // 2  # Find the middle index
+        return node.values[i + 1], i + 1
 
-        # Insert the middle key into the parent
-        parent.keys.insert(index, node_to_split.keys[mid])
-        parent.children.insert(index + 1, new_node)  # Add the new node as a child
+    def _merge_nodes(self, parent, child, index):
+        """Merges a child node into the parent node by extracting a pivot key."""
+        parent.values.pop(index)
+        pivot = child.keys[0]
 
-        # Split the keys between the original node and the new node
-        new_node.keys = node_to_split.keys[mid + 1:]
-        node_to_split.keys = node_to_split.keys[:mid]
+        for i, item in enumerate(parent.keys):
+            if pivot < item:
+                parent.keys = parent.keys[:i] + [pivot] + parent.keys[i:]
+                parent.values = parent.values[:i] + child.values + parent.values[i:]
+                break
 
-        if node_to_split.is_leaf:
-            # If the node to split is a leaf, split the values as well
-            new_node.values = node_to_split.values[mid + 1:]
-            node_to_split.values = node_to_split.values[:mid]
-            # Maintain the linked list structure of leaf nodes
-            new_node.next = node_to_split.next
-            node_to_split.next = new_node
-        else:
-            # If the node is not a leaf, split the children
-            new_node.children = node_to_split.children[mid + 1:]
-            node_to_split.children = node_to_split.children[:mid + 1]
+            elif i + 1 == len(parent.keys):
+                parent.keys.append(pivot)
+                parent.values.extend(child.values)
+                break
 
-    def _find_index(self, keys, key):
-        # Find the index at which to insert a key in a sorted list of keys
-        idx = 0
-        while idx < len(keys) and key > keys[idx]:
-            idx += 1
-        return idx
+    def insert_key_value(self, key, value):
+        """Inserts a key-value pair into the tree. Splits leaf nodes if full."""
+        parent = None
+        child = self.root
 
-    def search(self, key):
-        # Search for a key in the B+ tree and return its value if found
-        leaf_node = self._find_leaf_node(key)  # Find the leaf node where the key might be
-        for i, k in enumerate(leaf_node.keys):
-            if k == key:
-                return leaf_node.values[i]  # Return the value if the key is found
-        return None  # Return None if the key is not found
+        # Traverse the tree until a leaf node is reached.
+        while not child.leaf:
+            parent = child
+            child, index = self._find_position(child, key)
 
-    def _find_leaf_node(self, key):
-        # Find the leaf node that should contain the given key
-        current_node = self.root
-        while not current_node.is_leaf:
-            idx = self._find_index(current_node.keys, key)
-            current_node = current_node.children[idx]  # Traverse down to the correct child
-        return current_node
+        child.insert_key_value(key, value)
+
+        # Split the leaf node if it becomes full.
+        if child.is_node_full():
+            child.split_node()
+
+            # If there is a parent and it is not full, merge the new nodes.
+            if parent and not parent.is_node_full():
+                self._merge_nodes(parent, child, index)
+
+    def retrieve_value(self, key):
+        """Retrieves the value for a given key, or None if the key does not exist."""
+        child = self.root
+
+        while not child.leaf:
+            child, index = self._find_position(child, key)
+
+        for i, item in enumerate(child.keys):
+            if key == item:
+                return child.values[i]
+
+        return None
+
+    def display_tree(self):
+        """Displays the keys in the tree at each level."""
+        self.root.display_keys()

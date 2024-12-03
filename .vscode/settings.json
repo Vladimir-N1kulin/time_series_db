@@ -1,5 +1,5 @@
 {
-    "python.analysis.extraPaths": [
-      "C:\Users\Jibos\OneDrive\Documentos\code\time_series_db/src"
-    ]
+  "python.analysis.extraPaths": [
+      "C:\Users\Jibos\OneDrive\Documentos\code\time_series_db\BPlustTreeDB\src"
+  ]
 }

@@ -3,7 +3,8 @@ import sqlite3
 # Function to set up the database and create a table if it doesn't exist
 def setup_database():
     # Connect to the SQLite database file "time_series.db" (creates it if it doesn't exist)
-    conn = sqlite3.connect("time_series.db")
+    conn = sqlite3.connect(":memory:")
+
     cursor = conn.cursor()
     # Create a table "time_series_data" with columns:
     # - id: Auto-incremented primary key
@@ -38,3 +39,9 @@ def range_query(cursor, start_time, end_time):
     cursor.execute("SELECT * FROM time_series_data WHERE timestamp BETWEEN ? AND ?", (start_time, end_time))
     # Return all matching rows as a list of tuples
     return cursor.fetchall()
+
+# Function to delete a record by timestamp
+def delete_record(cursor, timestamp):
+    cursor.execute("DELETE FROM time_series_data WHERE timestamp = ?", (timestamp,))
+
+

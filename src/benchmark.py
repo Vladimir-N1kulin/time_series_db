@@ -8,14 +8,30 @@ import matplotlib.pyplot as plt  # Import for plotting results
 
 # Function to plot the query performance results
 def plot_results(tree_times, sql_times):
-    # Plot the times for the B+ Tree and SQL queries
-    plt.plot(tree_times, label="B+ Tree")
-    plt.plot(sql_times, label="SQL")
-    plt.legend()  # Add a legend to differentiate the two lines
-    plt.xlabel("Query Index")  # Label for the x-axis
-    plt.ylabel("Time (s)")  # Label for the y-axis
-    plt.title("Query Performance")  # Title of the plot
-    plt.show()  # Display the plot
+    # Set dark background theme
+    plt.style.use('dark_background')
+    
+    # Plot the times for the B+ Tree and SQL queries with custom colors
+    plt.plot(tree_times, label="B+ Tree", color='cyan', linewidth=2)
+    plt.plot(sql_times, label="SQL", color='magenta', linewidth=2)
+    
+    # Add a legend to differentiate the two lines
+    plt.legend(loc='best', facecolor='black', edgecolor='white')
+    
+    # Label the axes and add a title
+    plt.xlabel("Query Index", color='white')
+    plt.ylabel("Time (s)", color='white')
+    plt.title("Query Performance", color='white')
+    
+    # Customize gridlines
+    plt.grid(color='gray', linestyle='--', linewidth=0.5)
+    
+    # Customize tick colors
+    plt.xticks(color='white')
+    plt.yticks(color='white')
+    
+    # Display the plot
+    plt.show()
 
 # Function to benchmark insertion performance for both a B+ Tree and SQL database
 def benchmark_insertion(tree, cursor, dataset):

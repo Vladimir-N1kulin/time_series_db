@@ -1,0 +1,85 @@
+**Documentation: B+-Tree Time-Series Database Guide**
+
+**1. Introduction**
+
+This guide provides an overview of the implementation of a B+-tree for managing time-series data. It details the underlying data structure, supported operations, and key assumptions made during development. The B+-tree is used to facilitate efficient storage and retrieval of time-based data, allowing rapid insertions, deletions, and range-based queries.
+
+**2. Data Model and Schema**
+
+The core schema of the time-series database consists of a simple tuple: `(timestamp, value)`. Here is an explanation of each field:
+
+- **Timestamp**: A `datetime` object used as the key to uniquely identify data points in the system.
+- **Value**: A generic text value that can represent any data associated with the timestamp. For example, sensor readings, event logs, or transaction amounts.
+
+The database stores these tuples using two different backends:
+
+- **B+-Tree for in-memory indexing**: Efficient indexing is implemented using a B+-tree to manage timestamps as keys.
+- **SQLite Database**: A traditional SQL database is used for comparative performance analysis.
+
+**3. B+-Tree Implementation**
+
+The B+-Tree has been implemented in Python using custom classes to represent the tree structure, including internal nodes and leaf nodes. Here is an overview of the core classes used:
+
+- **Node**: Represents a generic internal node of the B+-Tree. Internal nodes contain keys and pointers to child nodes. They help direct the search down to the appropriate leaves.
+- **Leaf**: Represents the leaf node of the B+-Tree. Leaf nodes store the actual data values and are linked together, making range queries efficient.
+- **BPlusTree**: Represents the overall B+-Tree structure and manages insertions, deletions, and queries.
+
+Key features of the B+-Tree implementation:
+
+- **Balanced Tree Structure**: Every node in the tree maintains a balance, allowing uniform access times for insertions, deletions, and searches.
+- **Node Splitting**: When a node becomes full, it splits into two nodes, and a median value is promoted to the parent. This ensures that the B+-Tree remains balanced.
+- **Linked Leaf Nodes**: Leaf nodes are linked to facilitate efficient range-based queries, which is especially useful for time-series data.
+
+**4. Supported Operations**
+
+The B+-Tree implementation supports the following operations:
+
+- **Insertion**: Insert a key-value pair into the B+-Tree. If the target node becomes full, a split operation is performed to maintain balance. The time complexity for insertion is .
+
+  - Example: `tree.insert(timestamp, value)`
+
+- **Query/Search**: Search for a specific key in the tree. If the key exists, the corresponding value is returned. This operation has a time complexity of .
+
+  - Example: `tree.query(timestamp)`
+
+- **Range Query**: Retrieve all key-value pairs within a specific time range. This is particularly efficient due to linked leaf nodes, enabling direct traversal of the range.
+
+  - Example: `tree.search_range(start_time, end_time)`
+
+- **Deletion**: Remove a key-value pair from the B+-Tree. If deletion leaves a node with fewer keys than required, it may either borrow from a sibling or merge with a sibling to maintain balance.
+
+  - Example: `tree.delete(timestamp)`
+
+**5. Key Methods in B+-Tree Classes**
+
+- **`insert(key, value)`**: Inserts a key-value pair and handles node splitting if needed.
+- **`find(key)`**: Finds the appropriate leaf node that should contain the given key.
+- **`split()`**: Splits a full node into two nodes and promotes the median key to the parent.
+- **`query(key)`**: Searches for a specific key and returns the associated value.
+- **`delete(key)`**: Deletes a key from the tree and maintains balance by borrowing keys or merging nodes if necessary.
+- **`show()`**: Prints the structure of the tree for debugging purposes.
+
+**6. Assumptions Made**
+
+Several assumptions were made during the development of this B+-Tree:
+
+1. **Data is Inserted in Real-Time**: The database is assumed to handle a continuous stream of time-series data, making efficient insertions and fast lookups crucial.
+2. **Memory Availability**: The B+-Tree is stored in-memory, assuming sufficient memory to handle a large number of keys. This may require further adjustments for very large datasets.
+3. **Uniqueness of Keys**: It is assumed that each timestamp is unique, meaning there is only one value per timestamp.&#x20;
+4. **Balanced Workload**: Insertions and range queries are expected to be common operations. Thus, specific optimizations have been applied to support these tasks efficiently.
+
+**7. Comparative Benchmarking**
+
+To evaluate the B+-Tree performance, comparative benchmarking was performed against a traditional SQL database using SQLite. The benchmarking focused on:
+
+- **Insertion Time**: The time taken to insert one million records into both the B+-Tree and SQL.
+- **Query Time**: Comparing single-point lookup and range query times for both implementations.
+
+The benchmarking results showed that the B+-Tree offered significantly faster range queries compared to SQL, while insertion times were comparable under certain conditions.
+
+**8. Conclusion**
+
+The B+-Tree-based time-series database offers a scalable and efficient solution for handling high-throughput, time-based data. Its balanced tree structure and linked leaf nodes enable rapid range queries, making it well-suited for applications involving continuous data streams.
+
+For more information on the source code, examples, and how to run benchmarks, please refer to the GitHub repository included in the project deliverables.
+

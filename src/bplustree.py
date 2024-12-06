@@ -331,6 +331,26 @@ class BPlusTree(object):
         leaf = self.find(key)  # Find the leaf containing the key
         return leaf[key] if key in leaf.keys else None  # Return the value(s) or None
 
+    def range_query(self, start_key, end_key):
+            """
+            Retrieve all key-value pairs in the range [start_key, end_key].
+            :param start_key: The starting key of the range.
+            :param end_key: The ending key of the range.
+            :return: A list of key-value pairs in the range.
+            """
+            results = []
+            leaf = self.find(start_key)  # Find the leaf where the range starts
+
+            while leaf:
+                for key, value in zip(leaf.keys, leaf.values):
+                    if start_key <= key <= end_key:
+                        results.append((key, value))
+                    elif key > end_key:
+                        return results
+                leaf = leaf.next  # Move to the next leaf node
+
+            return results
+
     def change(self, key, value):
         """
         Update the value associated with a key.
@@ -453,27 +473,4 @@ class BPlusTree(object):
         return node
 
 
-def demo():
-    """
-    Demonstrate the functionality of the B+ Tree.
-    Inserts and deletes random keys, showing the tree structure at each step.
-    """
-    bplustree = BPlusTree()  # Create a new B+ Tree
-    random_list = random.sample(range(1, 100), 20)  # Generate 20 random keys
 
-    # Insert keys into the tree
-    for i in random_list:
-        bplustree[i] = 'test' + str(i)  # Insert key-value pairs
-        print('Insert ' + str(i))
-        bplustree.show()  # Show tree structure after each insertion
-
-    random.shuffle(random_list)  # Shuffle the keys for deletion
-    # Delete keys from the tree
-    for i in random_list:
-        print('Delete ' + str(i))
-        bplustree.delete(i)  # Delete the key
-        bplustree.show()  # Show tree structure after each deletion
-
-
-if __name__ == '__main__':
-    demo()  # Run the demo when the script is executed directly

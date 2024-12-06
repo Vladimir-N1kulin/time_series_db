@@ -3,7 +3,7 @@ import sys
 import os
 # Add the '../src' directory to the Python path to access the database module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
-from database import insert_record, search_exact_time, delete_record  # Import required functions from the database module
+from database import insert_record, search_exact_time, delete_record, range_query  # Import required functions from the database module
 import matplotlib.pyplot as plt  # Import for plotting results
 
 # Function to plot the query performance results
@@ -59,6 +59,23 @@ def benchmark_query(tree, cursor, queries):
         sql_times.append(time.time() - start_time)  # Record the time taken
 
     return tree_times, sql_times  # Return the times for both the B+ Tree and SQL queries
+
+def benchmark_range_query(tree, cursor, ranges):
+    tree_times = []
+    sql_times = []
+
+    for start_time, end_time in ranges:
+        # Benchmark B+ Tree range query
+        start_time_measure = time.time()
+        tree_results = tree.range_query(start_time, end_time)
+        tree_times.append(time.time() - start_time_measure)
+
+        # Benchmark SQL range query
+        start_time_measure = time.time()
+        sql_results = range_query(cursor, start_time, end_time)
+        sql_times.append(time.time() - start_time_measure)
+
+    return tree_times, sql_times
 
 
 def benchmark_delete(tree, cursor, dataset):

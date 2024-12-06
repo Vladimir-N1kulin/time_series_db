@@ -74,6 +74,7 @@ To evaluate the B+-Tree performance, comparative benchmarking was performed agai
 
 - **Insertion Time**: The time taken to insert one million records into both the B+-Tree and SQL.
 - **Query Time**: Comparing single-point lookup and range query times for both implementations.
+- **Delete Time**: The time taken to delete one million records into both the B+-Tree and SQL.
 
 The benchmarking results showed that the B+-Tree offered significantly faster range queries compared to SQL, while insertion times were comparable under certain conditions.
 

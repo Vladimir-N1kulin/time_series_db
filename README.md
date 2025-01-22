@@ -1,6 +1,6 @@
 # BPlusTreeDB  
 
-A simple implementation of a B+ tree, a self-balancing tree data structure that:  
+An implementation of a B+ tree, a self-balancing tree data structure that:  
 1. Maintains sorted data order.  
 2. Supports insertions and access in logarithmic time.  
 
